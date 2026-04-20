@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Triad AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream:#F5F3EF; --beige:#E8D8C4; --sand:#C9A27E; --brown:#8B6B5C;
+      --umber:#6B4E3D; --charcoal:#2B2B2B; --black:#1A1A1A;
+      --warmgray:#B0A99A; --lightgray:#D9D9D9;
+      --glass-bg:rgba(245,243,239,0.09); --glass-border:rgba(245,243,239,0.18);
+      --glass-bg2:rgba(245,243,239,0.05); --glass-active:rgba(245,243,239,0.15);
+      --text:#F5F3EF; --text-dim:rgba(245,243,239,0.55); --text-muted:rgba(245,243,239,0.35);
+      --radius-sm:8px; --radius:16px; --radius-lg:22px; --radius-xl:30px;
+    }
+    body { font-family:'Inter',sans-serif; min-height:100vh; overflow-x:hidden; color:var(--text); position:relative; }
+    .bg-scene {
+      position:fixed; inset:0; z-index:0;
+      background: linear-gradient(170deg,#1a0f08 0%,#2d1a10 15%,#5c3020 30%,#8b4a28 45%,#c97840 55%,#e8a855 65%,#d4845a 75%,#7a4535 85%,#3d2015 95%,#1a0d08 100%);
+    }
+    .bg-scene::before {
+      content:''; position:absolute; bottom:35%; left:0; right:0; height:180px;
+      background:radial-gradient(ellipse 80% 100% at 50% 100%,rgba(232,168,85,0.55) 0%,rgba(200,100,50,0.2) 50%,transparent 100%);
+    }
+    .bg-scene::after {
+      content:''; position:absolute; bottom:0; left:0; right:0; height:42%;
+      background:radial-gradient(ellipse 120% 80% at 20% 110%,#1a0a05 40%,transparent 70%),
+        radial-gradient(ellipse 100% 70% at 80% 115%,#2a1208 40%,transparent 70%),
+        radial-gradient(ellipse 80% 60% at 50% 108%,#150905 50%,transparent 75%);
+    }
+    .grain { position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.04;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size:200px 200px; }
+    .app { position:relative; z-index:2; max-width:860px; margin:0 auto; padding:0 24px 80px; }
+
+    /* HEADER */
+    header { padding:40px 0 36px; display:flex; align-items:flex-start; justify-content:space-between; }
+    .logo { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:0.07em; color:var(--cream); line-height:1; }
+    .logo em { color:var(--sand); font-style:normal; }
+    .tagline { font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-muted); margin-top:5px; font-weight:600; font-family:'Montserrat',sans-serif; }
+    .backend-status { display:flex; align-items:center; gap:8px; background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:999px; padding:7px 15px; backdrop-filter:blur(12px); font-size:11px; color:var(--text-dim); font-family:'Montserrat',sans-serif; font-weight:500; letter-spacing:0.05em; margin-top:8px; }
+    .status-dot { width:6px; height:6px; border-radius:50%; background:var(--warmgray); }
+    .status-dot.online { background:#6ee7b7; box-shadow:0 0 6px #6ee7b7; }
+    .status-dot.offline { background:#f97066; }
+
+    /* NAV */
+    nav { display:flex; gap:4px; margin-bottom:32px; background:var(--glass-bg); border:0.5px solid var(--glass-border); backdrop-filter:blur(20px) saturate(1.4); padding:5px; border-radius:var(--radius-lg); width:fit-content; }
+    .tab { padding:10px 22px; border-radius:var(--radius); border:none; background:transparent; color:var(--text-muted); font-family:'Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:all 0.25s; }
+    .tab.active { background:var(--glass-active); border:0.5px solid var(--glass-border); color:var(--cream); }
+    .tab:hover:not(.active) { color:var(--text); }
+
+    .panel { display:none; }
+    .panel.active { display:block; animation:fadeUp 0.35s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    /* GLASS CARD */
+    .glass-card { background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:var(--radius-xl); backdrop-filter:blur(24px) saturate(1.5); padding:32px; }
+
+    /* VOICE */
+    .voice-center { display:flex; flex-direction:column; align-items:center; padding:40px 0 20px; gap:24px; }
+    .orb-wrap { position:relative; }
+    .orb-ring { position:absolute; inset:-16px; border-radius:50%; border:0.5px solid rgba(201,162,126,0.25); animation:ringpulse 3s ease-in-out infinite; }
+    .orb-ring2 { position:absolute; inset:-32px; border-radius:50%; border:0.5px solid rgba(201,162,126,0.11); animation:ringpulse 3s ease-in-out infinite 0.7s; }
+    @keyframes ringpulse { 0%,100%{opacity:0.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.04)} }
+    .orb { width:140px; height:140px; border-radius:50%;
+      background:radial-gradient(circle at 38% 38%,#e8c4a0 0%,#c9906a 30%,#8b5a40 60%,#4a2d1e 100%);
+      cursor:pointer; border:none; position:relative; z-index:1;
+      box-shadow:0 0 0 1px rgba(201,162,126,0.3),0 0 60px rgba(180,120,70,0.35),inset 0 1px 0 rgba(255,255,255,0.25);
+      transition:transform 0.2s,box-shadow 0.2s; }
+    .orb:hover { transform:scale(1.05); box-shadow:0 0 0 1px rgba(201,162,126,0.5),0 0 90px rgba(180,120,70,0.5),inset 0 1px 0 rgba(255,255,255,0.3); }
+    .orb.listening { animation:orbpulse 1.4s ease-in-out infinite; }
+    .orb.speaking { animation:orbspeak 0.6s ease-in-out infinite alternate; }
+    @keyframes orbpulse {
+      0%,100%{box-shadow:0 0 0 1px rgba(201,162,126,0.3),0 0 60px rgba(180,120,70,0.35);transform:scale(1)}
+      50%{box-shadow:0 0 0 1px rgba(201,162,126,0.6),0 0 100px rgba(180,120,70,0.6),0 0 0 24px rgba(201,162,126,0.06);transform:scale(1.04)} }
+    @keyframes orbspeak { from{box-shadow:0 0 0 1px rgba(201,162,126,0.3),0 0 40px rgba(107,78,61,0.4)} to{box-shadow:0 0 0 1px rgba(201,162,126,0.6),0 0 90px rgba(201,162,126,0.55)} }
+    .orb-icon { font-size:34px; line-height:140px; display:block; text-align:center; pointer-events:none; }
+
+    .wake-badge { display:flex; align-items:center; gap:8px; background:var(--glass-bg); border:0.5px solid var(--glass-border); backdrop-filter:blur(12px); border-radius:999px; padding:8px 18px; font-family:'Montserrat',sans-serif; font-size:11px; letter-spacing:0.06em; color:var(--text-muted); }
+    .wake-dot { width:7px; height:7px; border-radius:50%; background:var(--warmgray); transition:background 0.3s; }
+    .wake-dot.active { background:#6ee7b7; box-shadow:0 0 8px #6ee7b7; animation:wakepulse 1.5s ease-in-out infinite; }
+    .wake-dot.triggered { background:var(--sand); box-shadow:0 0 12px var(--sand); }
+    @keyframes wakepulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+    .voice-status { font-size:13px; color:var(--text-muted); text-align:center; min-height:22px; transition:color 0.3s; letter-spacing:0.03em; }
+    .voice-status.active { color:#6ee7b7; }
+    .voice-status.speaking-state { color:var(--sand); }
+
+    .transcript-box, .response-box { width:100%; max-width:560px; background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:var(--radius-lg); padding:18px 22px; backdrop-filter:blur(16px); font-size:14px; line-height:1.7; min-height:62px; }
+    .response-box { background:rgba(201,162,126,0.08); border-color:rgba(201,162,126,0.22); }
+    .box-label { font-family:'Montserrat',sans-serif; font-size:9px; text-transform:uppercase; letter-spacing:0.15em; color:var(--text-muted); margin-bottom:7px; font-weight:700; }
+    .box-label.accent { color:var(--sand); }
+    .voice-hint { font-size:12px; color:var(--text-muted); text-align:center; max-width:380px; line-height:1.7; letter-spacing:0.02em; }
+    .voice-hint strong { color:var(--text); }
+
+    /* TRAVEL */
+    .travel-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+    @media(max-width:560px){.travel-grid{grid-template-columns:1fr}}
+    .field { display:flex; flex-direction:column; gap:8px; }
+    .field label { font-family:'Montserrat',sans-serif; font-size:9px; text-transform:uppercase; letter-spacing:0.15em; color:var(--text-muted); font-weight:700; }
+    .field input,.field textarea { background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:var(--radius-sm); padding:12px 15px; color:var(--text); font-family:'Inter',sans-serif; font-size:14px; backdrop-filter:blur(12px); transition:border-color 0.2s,background 0.2s; }
+    .field input:focus,.field textarea:focus { outline:none; border-color:rgba(201,162,126,0.5); background:rgba(201,162,126,0.07); }
+    .field input::placeholder,.field textarea::placeholder { color:var(--text-muted); }
+
+    .btn-primary { width:100%; padding:15px; background:linear-gradient(135deg,rgba(201,162,126,0.22) 0%,rgba(139,107,92,0.28) 100%); border:0.5px solid rgba(201,162,126,0.42); border-radius:var(--radius); color:var(--cream); font-family:'Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; backdrop-filter:blur(12px); }
+    .btn-primary:hover { background:linear-gradient(135deg,rgba(201,162,126,0.34) 0%,rgba(139,107,92,0.38) 100%); border-color:rgba(201,162,126,0.62); }
+    .btn-primary:active { transform:scale(0.99); }
+    .btn-primary:disabled { opacity:0.35; cursor:not-allowed; }
+
+    .result-card { background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:var(--radius-xl); padding:28px; margin-top:20px; line-height:1.85; font-size:14px; backdrop-filter:blur(20px); }
+    .result-card h3 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.06em; margin-bottom:18px; color:var(--sand); }
+    .result-card .itinerary-body { white-space:pre-wrap; color:var(--text); }
+
+    .speak-btn { margin-top:18px; padding:9px 20px; background:transparent; border:0.5px solid rgba(201,162,126,0.35); border-radius:999px; color:var(--sand); font-family:'Montserrat',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+    .speak-btn:hover { background:rgba(201,162,126,0.12); }
+    .speak-btn.active-speak { color:var(--cream); border-color:rgba(245,243,239,0.4); }
+
+    .loader { display:flex; gap:6px; justify-content:center; align-items:center; padding:28px; }
+    .loader span { width:7px; height:7px; border-radius:50%; background:var(--sand); animation:bounce 1.2s ease-in-out infinite; }
+    .loader span:nth-child(2){animation-delay:0.15s;background:var(--brown)}
+    .loader span:nth-child(3){animation-delay:0.3s;background:var(--warmgray)}
+    @keyframes bounce{0%,80%,100%{transform:scale(0.7);opacity:0.4}40%{transform:scale(1.2);opacity:1}}
+
+    .error { background:rgba(249,112,102,0.08); border:0.5px solid rgba(249,112,102,0.3); border-radius:var(--radius-sm); padding:12px 16px; color:#f97066; font-size:13px; margin-top:14px; }
+    .support-notice { background:rgba(201,162,126,0.08); border:0.5px solid rgba(201,162,126,0.25); border-radius:var(--radius-sm); padding:10px 14px; font-size:12px; color:var(--sand); margin-bottom:20px; }
+
+    /* DOC PANELS */
+    .doc-toggle { display:flex; gap:4px; background:var(--glass-bg); border:0.5px solid var(--glass-border); backdrop-filter:blur(12px); border-radius:var(--radius-lg); padding:5px; width:fit-content; margin-bottom:24px; }
+    .doc-toggle-btn { padding:9px 22px; border-radius:var(--radius); border:none; background:transparent; color:var(--text-muted); font-family:'Montserrat',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+    .doc-toggle-btn.active { background:var(--glass-active); border:0.5px solid var(--glass-border); color:var(--cream); }
+    .doc-toggle-btn:hover:not(.active) { color:var(--text); }
+
+    .doc-upload-area { border:1px dashed rgba(201,162,126,0.28); border-radius:var(--radius-xl); padding:48px; text-align:center; cursor:pointer; background:var(--glass-bg); backdrop-filter:blur(16px); transition:all 0.25s; }
+    .doc-upload-area:hover,.doc-upload-area.dragover { border-color:rgba(201,162,126,0.62); background:rgba(201,162,126,0.08); }
+    .doc-upload-area .upload-icon { font-size:2.4rem; margin-bottom:14px; }
+    .doc-upload-area h3 { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.06em; color:var(--cream); margin-bottom:8px; }
+    .doc-upload-area p { color:var(--text-muted); font-size:12px; line-height:1.6; }
+    .doc-upload-area input[type="file"] { display:none; }
+
+    .file-chip { display:none; align-items:center; gap:8px; margin-top:14px; padding:8px 18px; background:rgba(201,162,126,0.12); border:0.5px solid rgba(201,162,126,0.3); border-radius:999px; font-size:11px; color:var(--sand); width:fit-content; margin-left:auto; margin-right:auto; font-family:'Montserrat',sans-serif; letter-spacing:0.04em; font-weight:600; }
+
+    .doc-textarea { width:100%; height:200px; background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:var(--radius-lg); color:var(--text); font-family:'Inter',sans-serif; font-size:14px; padding:18px; resize:vertical; outline:none; line-height:1.75; backdrop-filter:blur(12px); transition:border-color 0.2s; }
+    .doc-textarea:focus { border-color:rgba(201,162,126,0.5); }
+    .doc-textarea::placeholder { color:var(--text-muted); }
+
+    .doc-result-tabs { display:flex; gap:0; border-bottom:0.5px solid var(--glass-border); margin-bottom:20px; }
+    .doc-result-tab { padding:10px 20px; border:none; border-bottom:1.5px solid transparent; background:transparent; color:var(--text-muted); font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; margin-bottom:-1px; }
+    .doc-result-tab:hover { color:var(--text); }
+    .doc-result-tab.active { color:var(--sand); border-bottom-color:var(--sand); }
+
+    .doc-result-panel { display:none; }
+    .doc-result-panel.active { display:block; }
+
+    .doc-result-box { background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:var(--radius-lg); padding:22px 26px; font-size:14px; line-height:1.9; color:var(--text); white-space:pre-wrap; max-height:440px; overflow-y:auto; backdrop-filter:blur(12px); }
+    .doc-result-box::-webkit-scrollbar { width:4px; }
+    .doc-result-box::-webkit-scrollbar-track { background:transparent; }
+    .doc-result-box::-webkit-scrollbar-thumb { background:rgba(201,162,126,0.35); border-radius:2px; }
+
+    .doc-result-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+    .doc-result-header h4 { font-family:'Montserrat',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); }
+
+    .copy-btn { padding:5px 14px; background:var(--glass-bg); border:0.5px solid var(--glass-border); border-radius:999px; color:var(--text-muted); font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+    .copy-btn:hover { color:var(--text); border-color:rgba(245,243,239,0.3); }
+
+    .doc-badge { display:inline-flex; align-items:center; gap:7px; padding:5px 14px; background:rgba(201,162,126,0.12); border:0.5px solid rgba(201,162,126,0.28); border-radius:999px; font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--sand); margin-bottom:20px; }
+
+    .panel-number { font-family:'Bebas Neue',sans-serif; font-size:110px; line-height:1; color:rgba(201,162,126,0.07); letter-spacing:0.04em; position:absolute; top:-10px; right:0; pointer-events:none; user-select:none; }
+
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:rgba(201,162,126,0.3); border-radius:2px; }
+  </style>
+</head>
+<body>
+<div class="bg-scene"></div>
+<div class="grain"></div>
+<div class="app">
+
+  <header>
+    <div>
+      <div class="logo">TRIAD <em>AI</em></div>
+      <div class="tagline">Voice &nbsp;·&nbsp; Travel &nbsp;·&nbsp; Medical &nbsp;·&nbsp; Legal</div>
+    </div>
+    <div class="backend-status">
+      <div class="status-dot" id="backend-dot"></div>
+      <span id="backend-label">Checking...</span>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab active" data-tab="voice"   onclick="switchTab('voice',   this)">🎙 Voice</button>
+    <button class="tab"        data-tab="travel"  onclick="switchTab('travel',  this)">✈️ Travel</button>
+    <button class="tab"        data-tab="medical" onclick="switchTab('medical', this)">🏥 Medical</button>
+    <button class="tab"        data-tab="legal"   onclick="switchTab('legal',   this)">⚖️ Legal</button>
+  </nav>
+
+  <!-- VOICE PANEL -->
+  <div class="panel active" id="panel-voice">
+    <div class="voice-center">
+      <div class="orb-wrap">
+        <div class="orb-ring2"></div>
+        <div class="orb-ring"></div>
+        <button class="orb" id="orb" onclick="toggleVoice()">
+          <span class="orb-icon" id="orb-icon">🎙</span>
+        </button>
+      </div>
+      <div class="wake-badge">
+        <div class="wake-dot" id="wake-dot"></div>
+        <span>Say <strong style="color:var(--text)">"Hey Triad"</strong> to activate</span>
+      </div>
+      <div class="voice-status" id="voice-status">Initializing wake word listener...</div>
+      <div class="transcript-box">
+        <div class="box-label">You said</div>
+        <div id="transcript-text" style="color:var(--text-muted)">Waiting for your voice...</div>
+      </div>
+      <div class="response-box">
+        <div class="box-label accent">Triad AI</div>
+        <div id="response-text" style="color:var(--text-muted)">Response will appear here...</div>
+      </div>
+      <div class="voice-hint">Say <strong>"Hey Triad"</strong> to activate, then speak your command.</div>
+    </div>
+  </div>
+
+  <!-- TRAVEL PANEL -->
+  <div class="panel" id="panel-travel">
+    <div id="speech-support-notice" class="support-notice" style="display:none">
+      ⚠️ Your browser may not support voice output. Travel plans will still display as text.
+    </div>
+    <div class="glass-card" style="position:relative;overflow:hidden;">
+      <div class="panel-number">02</div>
+      <div class="travel-grid">
+        <div class="field"><label>From</label><input type="text" id="t-origin" placeholder="e.g. Bengaluru"/></div>
+        <div class="field"><label>To</label><input type="text" id="t-dest" placeholder="e.g. Goa"/></div>
+        <div class="field"><label>Days</label><input type="number" id="t-days" placeholder="e.g. 3" min="1" max="30"/></div>
+        <div class="field"><label>Travellers</label><input type="number" id="t-travelers" placeholder="e.g. 2" min="1"/></div>
+        <div class="field" style="grid-column:span 2"><label>Budget (₹)</label><input type="text" id="t-budget" placeholder="e.g. 15000"/></div>
+      </div>
+      <button class="btn-primary" id="plan-btn" onclick="planTrip()">✈ &nbsp; Generate Travel Plan</button>
+    </div>
+    <div id="travel-error"  class="error"  style="display:none"></div>
+    <div id="travel-loader" class="loader" style="display:none"><span></span><span></span><span></span></div>
+    <div id="travel-result" class="result-card" style="display:none">
+      <h3 id="travel-result-title"></h3>
+      <div id="travel-result-text" class="itinerary-body"></div>
+      <button class="speak-btn" onclick="speakTravelPlan()">🔊 &nbsp; Read Plan Aloud</button>
+    </div>
+  </div>
+
+  <!-- MEDICAL PANEL -->
+  <div class="panel" id="panel-medical">
+    <div class="doc-toggle">
+      <button class="doc-toggle-btn active" id="med-btn-pdf"  onclick="medSwitchMode('pdf')">📄 Upload PDF</button>
+      <button class="doc-toggle-btn"        id="med-btn-text" onclick="medSwitchMode('text')">✏️ Paste Text</button>
+    </div>
+    <div id="med-pdf-area">
+      <div class="doc-upload-area" id="med-drop-zone"
+           onclick="document.getElementById('med-pdf-input').click()"
+           ondragover="medDragOver(event)" ondragleave="medDragLeave()" ondrop="medDrop(event)">
+        <div class="upload-icon">🩺</div>
+        <h3>Drop your medical report PDF here</h3>
+        <p>Supports blood reports, prescriptions, scan reports,<br/>discharge summaries and any medical document.</p>
+        <input type="file" id="med-pdf-input" accept=".pdf" onchange="medFileSelect(event)"/>
+      </div>
+      <div class="file-chip" id="med-file-chip">
+        <span>📎</span><span id="med-file-name"></span>
+        <span style="cursor:pointer;color:var(--text-muted)" onclick="medClearFile()">✕</span>
+      </div>
+    </div>
+    <div id="med-text-area" style="display:none">
+      <textarea class="doc-textarea" id="med-text-input"
+        placeholder="Paste your medical report values here...&#10;&#10;Example:&#10;Hemoglobin: 11.2 g/dL&#10;WBC: 9500 /μL&#10;Platelets: 180000 /μL&#10;Blood Sugar Fasting: 105 mg/dL&#10;&#10;Minimum 30 characters required."></textarea>
+    </div>
+    <button class="btn-primary" id="med-analyze-btn" onclick="analyzeMedical()" style="margin-top:18px;">🔍 &nbsp; Analyze Medical Report</button>
+    <div id="med-error"  class="error"  style="display:none"></div>
+    <div id="med-loader" class="loader" style="display:none"><span></span><span></span><span></span></div>
+    <div id="med-results" style="display:none;margin-top:28px;">
+      <div class="doc-badge" id="med-doc-badge">🩺 Report analyzed</div>
+      <div class="doc-result-tabs">
+        <button class="doc-result-tab active" onclick="medShowTab('summary',this)">📋 Summary</button>
+        <button class="doc-result-tab"        onclick="medShowTab('values', this)">🔬 Value Analysis</button>
+        <button class="doc-result-tab"        onclick="medShowTab('advice', this)">💡 Health Advice</button>
+      </div>
+      <div class="doc-result-panel active" id="med-panel-summary">
+        <div class="doc-result-header"><h4>📋 Plain English Summary</h4><button class="copy-btn" onclick="medCopy('med-summary-text',this)">Copy</button></div>
+        <div class="doc-result-box" id="med-summary-text"></div>
+        <button class="speak-btn" id="med-speak-summary" onclick="medSpeak('med-summary-text','med-speak-summary')">🔊 Read Aloud</button>
+      </div>
+      <div class="doc-result-panel" id="med-panel-values">
+        <div class="doc-result-header"><h4>🔬 Detailed Value Analysis</h4><button class="copy-btn" onclick="medCopy('med-values-text',this)">Copy</button></div>
+        <div class="doc-result-box" id="med-values-text"></div>
+        <button class="speak-btn" id="med-speak-values" onclick="medSpeak('med-values-text','med-speak-values')">🔊 Read Aloud</button>
+      </div>
+      <div class="doc-result-panel" id="med-panel-advice">
+        <div class="doc-result-header"><h4>💡 Health Advice & Next Steps</h4><button class="copy-btn" onclick="medCopy('med-advice-text',this)">Copy</button></div>
+        <div class="doc-result-box" id="med-advice-text"></div>
+        <button class="speak-btn" id="med-speak-advice" onclick="medSpeak('med-advice-text','med-speak-advice')">🔊 Read Aloud</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEGAL PANEL -->
+  <div class="panel" id="panel-legal">
+    <div class="doc-toggle">
+      <button class="doc-toggle-btn active" id="legal-btn-pdf"  onclick="legalSwitchMode('pdf')">📄 Upload PDF</button>
+      <button class="doc-toggle-btn"        id="legal-btn-text" onclick="legalSwitchMode('text')">✏️ Paste Text</button>
+    </div>
+    <div id="legal-pdf-area">
+      <div class="doc-upload-area" id="legal-drop-zone"
+           onclick="document.getElementById('legal-pdf-input').click()"
+           ondragover="legalDragOver(event)" ondragleave="legalDragLeave()" ondrop="legalDrop(event)">
+        <div class="upload-icon">📑</div>
+        <h3>Drop your legal PDF here</h3>
+        <p>Supports contracts, rental deeds, employment agreements,<br/>NDAs, terms & conditions, loan documents and more.</p>
+        <input type="file" id="legal-pdf-input" accept=".pdf" onchange="legalFileSelect(event)"/>
+      </div>
+      <div class="file-chip" id="legal-file-chip">
+        <span>📎</span><span id="legal-file-name"></span>
+        <span style="cursor:pointer;color:var(--text-muted)" onclick="legalClearFile()">✕</span>
+      </div>
+    </div>
+    <div id="legal-text-area" style="display:none">
+      <textarea class="doc-textarea" id="legal-text-input"
+        placeholder="Paste your legal document text here...&#10;&#10;Examples: rental agreement, employment contract, terms of service, NDA, loan agreement...&#10;&#10;Minimum 50 characters required."></textarea>
+    </div>
+    <button class="btn-primary" id="legal-analyze-btn" onclick="analyzeLegal()" style="margin-top:18px;">⚖️ &nbsp; Analyze Legal Document</button>
+    <div id="legal-error"  class="error"  style="display:none"></div>
+    <div id="legal-loader" class="loader" style="display:none"><span></span><span></span><span></span></div>
+    <div id="legal-results" style="display:none;margin-top:28px;">
+      <div class="doc-badge" id="legal-doc-badge">📄 Document analyzed</div>
+      <div class="doc-result-tabs">
+        <button class="doc-result-tab active" onclick="legalShowTab('plain',  this)">📖 Plain English</button>
+        <button class="doc-result-tab"        onclick="legalShowTab('clauses',this)">📋 Clause Breakdown</button>
+        <button class="doc-result-tab"        onclick="legalShowTab('keys',   this)">🔑 Key Points</button>
+      </div>
+      <div class="doc-result-panel active" id="legal-panel-plain">
+        <div class="doc-result-header"><h4>📖 Plain English Explanation</h4><button class="copy-btn" onclick="legalCopy('legal-plain-text',this)">Copy</button></div>
+        <div class="doc-result-box" id="legal-plain-text"></div>
+        <button class="speak-btn" id="legal-speak-plain" onclick="legalSpeak('legal-plain-text','legal-speak-plain')">🔊 Read Aloud</button>
+      </div>
+      <div class="doc-result-panel" id="legal-panel-clauses">
+        <div class="doc-result-header"><h4>📋 Clause by Clause Breakdown</h4><button class="copy-btn" onclick="legalCopy('legal-clauses-text',this)">Copy</button></div>
+        <div class="doc-result-box" id="legal-clauses-text"></div>
+        <button class="speak-btn" id="legal-speak-clauses" onclick="legalSpeak('legal-clauses-text','legal-speak-clauses')">🔊 Read Aloud</button>
+      </div>
+      <div class="doc-result-panel" id="legal-panel-keys">
+        <div class="doc-result-header"><h4>🔑 Key Points & Risks</h4><button class="copy-btn" onclick="legalCopy('legal-keys-text',this)">Copy</button></div>
+        <div class="doc-result-box" id="legal-keys-text"></div>
+        <button class="speak-btn" id="legal-speak-keys" onclick="legalSpeak('legal-keys-text','legal-speak-keys')">🔊 Read Aloud</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const BACKEND="http://localhost:8000";
+const WAKE_WORDS=["hey triad","hey tried","hey trade","triad"];
+let wakeRecognition=null,commandRecognition=null,appState="wake",currentTravelText="";
+let legalMode="pdf",legalFile=null,legalSpeechActive=null;
+let medMode="pdf",medFile=null,medSpeechActive=null;
+
+async function checkBackend(){
+  try{const r=await fetch(`${BACKEND}/`,{signal:AbortSignal.timeout(3000)});
+    if(r.ok){document.getElementById('backend-dot').className='status-dot online';document.getElementById('backend-label').textContent='Backend online';}
+    else throw new Error();}
+  catch{document.getElementById('backend-dot').className='status-dot offline';document.getElementById('backend-label').textContent='Backend offline';}}
+checkBackend();setInterval(checkBackend,30000);
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  (btn||document.querySelector(`[data-tab="${name}"]`)).classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');}
+
+if(!('speechSynthesis'in window))document.getElementById('speech-support-notice').style.display='block';
+function speak(text,onDone){if(!('speechSynthesis'in window)){if(onDone)onDone();return;}
+  window.speechSynthesis.cancel();const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='en-IN';utt.rate=1.0;utt.pitch=1.0;utt.volume=1.0;
+  utt.onend=()=>{if(onDone)onDone();};utt.onerror=()=>{if(onDone)onDone();};
+  window.speechSynthesis.speak(utt);}
+function playChime(){try{const ctx=new(window.AudioContext||window.webkitAudioContext)();
+  const osc=ctx.createOscillator();const gain=ctx.createGain();
+  osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';
+  osc.frequency.setValueAtTime(880,ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1320,ctx.currentTime+0.15);
+  gain.gain.setValueAtTime(0.3,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+  osc.start();osc.stop(ctx.currentTime+0.3);}catch(e){}}
+
+function setStatus(msg,active=false,isSpeaking=false){
+  const el=document.getElementById('voice-status');el.textContent=msg;
+  el.className='voice-status'+(active?' active':'')+(isSpeaking?' speaking-state':'');}
+function setWakeDot(state){document.getElementById('wake-dot').className='wake-dot'+(state!=='off'?' '+state:'');}
+function setOrbState(state){
+  const orb=document.getElementById('orb');const icon=document.getElementById('orb-icon');
+  orb.className='orb'+(state!=='idle'?' '+state:'');
+  icon.textContent=state==='listening'?'👂':state==='speaking'?'💬':'🎙';}
+function setResponseText(text){document.getElementById('response-text').style.color='var(--text)';document.getElementById('response-text').textContent=text;}
+
+function startWakeListener(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){setStatus("⚠️ Speech recognition not supported. Please use Chrome.",false);setWakeDot('off');return;}
+  wakeRecognition=new SR();wakeRecognition.lang='en-IN';wakeRecognition.continuous=false;
+  wakeRecognition.interimResults=false;wakeRecognition.maxAlternatives=3;
+  wakeRecognition.onstart=()=>{if(appState==="wake"){setWakeDot('active');setStatus('Listening for "Hey Triad"...',false);setOrbState('idle');}};
+  wakeRecognition.onresult=(e)=>{
+    const alts=Array.from(e.results[0]).map(r=>r.transcript.toLowerCase().trim());
+    const detected=alts.some(alt=>WAKE_WORDS.some(w=>alt.includes(w)));
+    if(detected&&appState==="wake")onWakeWordDetected();else if(appState==="wake")restartWakeListener();};
+  wakeRecognition.onerror=(e)=>{
+    if(e.error==='no-speech'||e.error==='aborted'){if(appState==="wake")restartWakeListener();return;}
+    setWakeDot('off');setStatus("Mic error: "+e.error,false);};
+  wakeRecognition.onend=()=>{if(appState==="wake")restartWakeListener();};
+  wakeRecognition.start();}
+function restartWakeListener(){setTimeout(()=>{if(appState!=="wake")return;try{wakeRecognition.start();}catch(e){startWakeListener();}},300);}
+function onWakeWordDetected(){appState="command";setWakeDot('triggered');setOrbState('listening');
+  setStatus("Hey! I'm listening — what do you need?",true);
+  playChime();speak("Yes? How can I help?",()=>listenForCommand());}
+function listenForCommand(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  commandRecognition=new SR();commandRecognition.lang='en-IN';commandRecognition.continuous=false;
+  commandRecognition.interimResults=false;commandRecognition.maxAlternatives=1;
+  commandRecognition.onstart=()=>{setOrbState('listening');setStatus("Listening for your command...",true);};
+  commandRecognition.onresult=async(e)=>{
+    const command=e.results[0][0].transcript;
+    document.getElementById('transcript-text').style.color='var(--text)';
+    document.getElementById('transcript-text').textContent=command;
+    appState="processing";await handleCommand(command);};
+  commandRecognition.onerror=()=>{setStatus('Didn\'t catch that — say "Hey Triad" to try again',false);returnToWakeMode();};
+  commandRecognition.onend=()=>{if(appState==="command")returnToWakeMode();};
+  commandRecognition.start();}
+function toggleVoice(){
+  if(appState==="wake"){if(wakeRecognition){try{wakeRecognition.stop();}catch(e){}}onWakeWordDetected();}
+  else if(appState==="command"){if(commandRecognition){try{commandRecognition.stop();}catch(e){}}returnToWakeMode();}
+  else if(appState==="speaking"){window.speechSynthesis.cancel();returnToWakeMode();}}
+function returnToWakeMode(){appState="wake";setOrbState('idle');setWakeDot('active');
+  setStatus('Listening for "Hey Triad"...',false);restartWakeListener();}
+async function handleCommand(command){setOrbState('idle');setStatus("Processing...",false);
+  if(["stop","sleep","goodbye","bye","exit"].some(w=>command.toLowerCase().includes(w))){
+    setResponseText("Going to sleep. Say \"Hey Triad\" to wake me up.");
+    speak("Going to sleep. Say Hey Triad to wake me up.",()=>returnToWakeMode());return;}
+  try{const res=await fetch(`${BACKEND}/voice/command`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command})});
+    if(!res.ok){const err=await res.json().catch(()=>({detail:"Unknown error"}));throw new Error(err.detail||`HTTP ${res.status}`);}
+    const data=await res.json();setResponseText(data.text);
+    if(data.action==='switch_tab'&&data.tab)setTimeout(()=>switchTab(data.tab),1200);
+    if(data.action==='open_url'&&data.url)setTimeout(()=>window.open(data.url,'_blank'),800);
+    appState="speaking";setOrbState('speaking');setStatus("Speaking...",false,true);
+    speak(data.text,()=>returnToWakeMode());}
+  catch(err){const msg=err.message.includes('fetch')?"Cannot reach backend. Make sure python backend.py is running.":"Error: "+err.message;
+    setResponseText(msg);speak("Sorry, I ran into an error.",()=>returnToWakeMode());}}
+
+async function planTrip(){
+  const origin=document.getElementById('t-origin').value.trim();
+  const dest=document.getElementById('t-dest').value.trim();
+  const days=parseInt(document.getElementById('t-days').value);
+  const travelers=parseInt(document.getElementById('t-travelers').value);
+  const budget=document.getElementById('t-budget').value.trim();
+  const errorEl=document.getElementById('travel-error');
+  const loaderEl=document.getElementById('travel-loader');
+  const resultEl=document.getElementById('travel-result');
+  const btn=document.getElementById('plan-btn');
+  errorEl.style.display='none';
+  if(!origin){showTravelError("Please enter your origin city.");return;}
+  if(!dest){showTravelError("Please enter your destination city.");return;}
+  if(!days||days<1){showTravelError("Please enter a valid number of days.");return;}
+  if(!travelers||travelers<1){showTravelError("Please enter number of travellers.");return;}
+  if(!budget){showTravelError("Please enter your budget.");return;}
+  btn.disabled=true;loaderEl.style.display='flex';resultEl.style.display='none';
+  try{const res=await fetch(`${BACKEND}/travel/plan`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({origin,destination:dest,days,travelers,budget})});
+    if(!res.ok){const err=await res.json().catch(()=>({detail:"Server error"}));throw new Error(err.detail||`HTTP ${res.status}`);}
+    const data=await res.json();currentTravelText=data.itinerary;
+    document.getElementById('travel-result-title').textContent=`✈ ${data.origin} → ${data.destination} · ${data.days} days · ₹${data.budget}`;
+    document.getElementById('travel-result-text').textContent=data.itinerary;
+    loaderEl.style.display='none';resultEl.style.display='block';}
+  catch(err){loaderEl.style.display='none';showTravelError(err.message.includes('fetch')?"Cannot reach backend. Make sure python backend.py is running.":"Error: "+err.message);}
+  finally{btn.disabled=false;}}
+function showTravelError(msg){const el=document.getElementById('travel-error');el.textContent=msg;el.style.display='block';}
+function speakTravelPlan(){if(!currentTravelText)return;speak(currentTravelText.substring(0,600)+"... Check the full plan on screen.");}
+
+function medSwitchMode(mode){medMode=mode;
+  document.getElementById('med-pdf-area').style.display=mode==='pdf'?'block':'none';
+  document.getElementById('med-text-area').style.display=mode==='text'?'block':'none';
+  document.getElementById('med-btn-pdf').classList.toggle('active',mode==='pdf');
+  document.getElementById('med-btn-text').classList.toggle('active',mode==='text');
+  medHideError();medHideResults();}
+function medDragOver(e){e.preventDefault();document.getElementById('med-drop-zone').classList.add('dragover');}
+function medDragLeave(){document.getElementById('med-drop-zone').classList.remove('dragover');}
+function medDrop(e){e.preventDefault();document.getElementById('med-drop-zone').classList.remove('dragover');
+  const file=e.dataTransfer.files[0];if(file&&file.name.endsWith('.pdf'))medSetFile(file);else medShowError("Please drop a valid PDF file.");}
+function medFileSelect(e){const f=e.target.files[0];if(f)medSetFile(f);}
+function medSetFile(file){medFile=file;document.getElementById('med-file-name').textContent=file.name;document.getElementById('med-file-chip').style.display='flex';}
+function medClearFile(){medFile=null;document.getElementById('med-file-chip').style.display='none';document.getElementById('med-pdf-input').value='';}
+async function analyzeMedical(){medHideError();medHideResults();
+  if(medMode==='pdf'&&!medFile){medShowError("Please upload a PDF file first.");return;}
+  if(medMode==='text'&&document.getElementById('med-text-input').value.trim().length<30){medShowError("Please paste your medical report text (minimum 30 characters).");return;}
+  const btn=document.getElementById('med-analyze-btn');const loader=document.getElementById('med-loader');
+  btn.disabled=true;loader.style.display='flex';
+  try{let data;
+    if(medMode==='pdf'){const formData=new FormData();formData.append('file',medFile);
+      const res=await fetch(`${BACKEND}/medical/analyze-pdf`,{method:'POST',body:formData});
+      if(!res.ok){const e=await res.json();throw new Error(e.detail||'PDF analysis failed.');}data=await res.json();}
+    else{const text=document.getElementById('med-text-input').value;
+      const res=await fetch(`${BACKEND}/medical/analyze-text`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+      if(!res.ok){const e=await res.json();throw new Error(e.detail||'Analysis failed.');}data=await res.json();}
+    document.getElementById('med-summary-text').textContent=data.summary||'—';
+    document.getElementById('med-values-text').textContent=data.value_analysis||'—';
+    document.getElementById('med-advice-text').textContent=data.health_advice||'—';
+    const badge=document.getElementById('med-doc-badge');
+    badge.textContent=data.filename?`🩺 ${data.filename}`:'✏️ Text report analyzed';
+    loader.style.display='none';document.getElementById('med-results').style.display='block';
+    medShowTabByName('summary');document.getElementById('med-results').scrollIntoView({behavior:'smooth'});}
+  catch(err){loader.style.display='none';medShowError('Error: '+err.message);}
+  finally{btn.disabled=false;}}
+function medShowTab(name,btn){document.querySelectorAll('#panel-medical .doc-result-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('#panel-medical .doc-result-tab').forEach(t=>t.classList.remove('active'));document.getElementById('med-panel-'+name).classList.add('active');btn.classList.add('active');}
+function medShowTabByName(name){document.querySelectorAll('#panel-medical .doc-result-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('#panel-medical .doc-result-tab').forEach(t=>t.classList.remove('active'));document.getElementById('med-panel-'+name).classList.add('active');document.querySelectorAll('#panel-medical .doc-result-tab')[0].classList.add('active');}
+function medCopy(id,btn){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
+function medSpeak(textId,btnId){const btn=document.getElementById(btnId);
+  if(medSpeechActive===btnId){window.speechSynthesis.cancel();medSpeechActive=null;document.querySelectorAll('#panel-medical .speak-btn').forEach(b=>{b.textContent='🔊 Read Aloud';b.classList.remove('active-speak');});return;}
+  window.speechSynthesis.cancel();document.querySelectorAll('#panel-medical .speak-btn').forEach(b=>{b.textContent='🔊 Read Aloud';b.classList.remove('active-speak');});
+  const utt=new SpeechSynthesisUtterance(document.getElementById(textId).textContent);utt.lang='en-IN';utt.rate=0.95;
+  utt.onend=()=>{btn.textContent='🔊 Read Aloud';btn.classList.remove('active-speak');medSpeechActive=null;};
+  btn.textContent='⏹ Stop Speaking';btn.classList.add('active-speak');medSpeechActive=btnId;window.speechSynthesis.speak(utt);}
+function medShowError(msg){const el=document.getElementById('med-error');el.textContent=msg;el.style.display='block';}
+function medHideError(){document.getElementById('med-error').style.display='none';}
+function medHideResults(){document.getElementById('med-results').style.display='none';}
+
+function legalSwitchMode(mode){legalMode=mode;
+  document.getElementById('legal-pdf-area').style.display=mode==='pdf'?'block':'none';
+  document.getElementById('legal-text-area').style.display=mode==='text'?'block':'none';
+  document.getElementById('legal-btn-pdf').classList.toggle('active',mode==='pdf');
+  document.getElementById('legal-btn-text').classList.toggle('active',mode==='text');
+  legalHideError();legalHideResults();}
+function legalDragOver(e){e.preventDefault();document.getElementById('legal-drop-zone').classList.add('dragover');}
+function legalDragLeave(){document.getElementById('legal-drop-zone').classList.remove('dragover');}
+function legalDrop(e){e.preventDefault();document.getElementById('legal-drop-zone').classList.remove('dragover');
+  const file=e.dataTransfer.files[0];if(file&&file.name.endsWith('.pdf'))legalSetFile(file);else legalShowError("Please drop a valid PDF file.");}
+function legalFileSelect(e){const file=e.target.files[0];if(file)legalSetFile(file);}
+function legalSetFile(file){legalFile=file;document.getElementById('legal-file-name').textContent=file.name;document.getElementById('legal-file-chip').style.display='flex';}
+function legalClearFile(){legalFile=null;document.getElementById('legal-file-chip').style.display='none';document.getElementById('legal-pdf-input').value='';}
+async function analyzeLegal(){legalHideError();legalHideResults();
+  if(legalMode==='pdf'&&!legalFile){legalShowError("Please upload a PDF file first.");return;}
+  if(legalMode==='text'){const txt=document.getElementById('legal-text-input').value.trim();if(txt.length<50){legalShowError("Please paste a legal document (minimum 50 characters).");return;}}
+  const btn=document.getElementById('legal-analyze-btn');const loader=document.getElementById('legal-loader');
+  btn.disabled=true;loader.style.display='flex';
+  try{let data;
+    if(legalMode==='pdf'){const formData=new FormData();formData.append('file',legalFile);
+      const res=await fetch(`${BACKEND}/legal/explain-pdf`,{method:'POST',body:formData});
+      if(!res.ok){const err=await res.json();throw new Error(err.detail||'PDF analysis failed.');}data=await res.json();}
+    else{const text=document.getElementById('legal-text-input').value;
+      const res=await fetch(`${BACKEND}/legal/explain-text`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+      if(!res.ok){const err=await res.json();throw new Error(err.detail||'Text analysis failed.');}data=await res.json();}
+    document.getElementById('legal-plain-text').textContent=data.plain_english||'—';
+    document.getElementById('legal-clauses-text').textContent=data.clauses||'—';
+    document.getElementById('legal-keys-text').textContent=data.key_points||'—';
+    const badge=document.getElementById('legal-doc-badge');
+    badge.textContent=data.filename?`📄 ${data.filename}`:'✏️ Text document analyzed';
+    loader.style.display='none';document.getElementById('legal-results').style.display='block';
+    legalShowTabByName('plain');document.getElementById('legal-results').scrollIntoView({behavior:'smooth'});}
+  catch(err){loader.style.display='none';legalShowError('Error: '+err.message);}
+  finally{btn.disabled=false;}}
+function legalShowTab(name,btn){document.querySelectorAll('#panel-legal .doc-result-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('#panel-legal .doc-result-tab').forEach(t=>t.classList.remove('active'));document.getElementById('legal-panel-'+name).classList.add('active');btn.classList.add('active');}
+function legalShowTabByName(name){document.querySelectorAll('#panel-legal .doc-result-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('#panel-legal .doc-result-tab').forEach(t=>t.classList.remove('active'));document.getElementById('legal-panel-'+name).classList.add('active');document.querySelectorAll('#panel-legal .doc-result-tab')[0].classList.add('active');}
+function legalCopy(id,btn){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
+function legalSpeak(textId,btnId){const btn=document.getElementById(btnId);
+  if(legalSpeechActive===btnId){window.speechSynthesis.cancel();legalSpeechActive=null;document.querySelectorAll('#panel-legal .speak-btn').forEach(b=>{b.textContent='🔊 Read Aloud';b.classList.remove('active-speak');});return;}
+  window.speechSynthesis.cancel();document.querySelectorAll('#panel-legal .speak-btn').forEach(b=>{b.textContent='🔊 Read Aloud';b.classList.remove('active-speak');});
+  const utt=new SpeechSynthesisUtterance(document.getElementById(textId).textContent);utt.lang='en-IN';utt.rate=0.95;
+  utt.onend=()=>{btn.textContent='🔊 Read Aloud';btn.classList.remove('active-speak');legalSpeechActive=null;};
+  btn.textContent='⏹ Stop Speaking';btn.classList.add('active-speak');legalSpeechActive=btnId;window.speechSynthesis.speak(utt);}
+function legalShowError(msg){const el=document.getElementById('legal-error');el.textContent=msg;el.style.display='block';}
+function legalHideError(){document.getElementById('legal-error').style.display='none';}
+function legalHideResults(){document.getElementById('legal-results').style.display='none';}
+
+window.addEventListener('load',()=>{startWakeListener();});
+</script>
+</body>
+</html>

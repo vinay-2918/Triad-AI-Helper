@@ -916,7 +916,7 @@ def free_port(port: int):
 if __name__ == "__main__":
     import uvicorn
 
-    PORT = 8000
+    PORT = int(os.environ.get("PORT", 8000))
     free_port(PORT)
 
     print(f"\n🚀 Starting Triad AI backend on http://127.0.0.1:{PORT}")

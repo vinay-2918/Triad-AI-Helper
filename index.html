@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Triad AI</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=Montserrat:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="bg-scene"></div>
+  <div class="grain"></div>
+
+  <!-- ── AUTH SCREEN ─────────────────────────────────────────────────────────── -->
+  <div id="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo">TRIAD <em>AI</em></div>
+      <div class="auth-tagline">Voice · Travel · Medical · Legal</div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="authSwitchTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-register" onclick="authSwitchTab('register')">Create Account</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div class="auth-form active" id="form-login">
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"
+            onkeydown="if(event.key==='Enter')doLogin()" />
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()" />
+        </div>
+        <div class="auth-error" id="login-error"></div>
+        <button class="btn-auth" id="login-btn" onclick="doLogin()">Sign In</button>
+        <div class="auth-hint">
+          Don't have an account? <a onclick="authSwitchTab('register')">Create one</a>
+        </div>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div class="auth-form" id="form-register">
+        <div class="auth-field">
+          <label>Full Name</label>
+          <input type="text" id="reg-fullname" placeholder="Your name" autocomplete="name" />
+        </div>
+        <div class="auth-field">
+          <label>Username</label>
+          <input type="text" id="reg-username" placeholder="e.g. triaduser" autocomplete="username" />
+        </div>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label>Password <span style="opacity:0.5;font-weight:400;">(min 6 chars)</span></label>
+          <input type="password" id="reg-password" placeholder="Choose a password" autocomplete="new-password"
+            onkeydown="if(event.key==='Enter')doRegister()" />
+        </div>
+        <div class="auth-error" id="register-error"></div>
+        <div class="auth-success" id="register-success"></div>
+        <button class="btn-auth" id="register-btn" onclick="doRegister()">Create Account</button>
+        <div class="auth-hint">
+          Already have an account? <a onclick="authSwitchTab('login')">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN APP ─────────────────────────────────────────────────────────────── -->
+  <div id="main-app">
+    <div class="app">
+
+      <header>
+        <div>
+          <div class="logo">TRIAD <em>AI</em></div>
+          <div class="tagline">Voice &nbsp;·&nbsp; Travel &nbsp;·&nbsp; Medical &nbsp;·&nbsp; Legal</div>
+        </div>
+        <div class="header-right">
+          <div class="backend-status" onclick="toggleBackendEdit()" title="Click to change backend URL">
+            <div class="status-dot" id="backend-dot"></div>
+            <span id="backend-label">Checking...</span>
+            <span style="font-size:9px;opacity:0.5;margin-left:2px">⚙</span>
+          </div>
+          <div id="backend-url-editor" style="display:none;" class="backend-url-row">
+            <input class="backend-url-input" id="backend-url-input" type="text" placeholder="http://127.0.0.1:8000" />
+            <button class="backend-url-save" onclick="saveBackendUrl()">Save</button>
+          </div>
+          <!-- User chip — click to go to profile -->
+          <div class="user-chip" onclick="openProfile()" title="My Profile">
+            <div class="user-avatar" id="header-avatar">?</div>
+            <span class="user-chip-name" id="header-username">...</span>
+          </div>
+          <!-- Logout button -->
+          <button class="btn-logout-header" onclick="doLogout()" title="Sign out">
+            <span>⏻</span> Logout
+          </button>
+        </div>
+      </header>
+
+      <nav>
+        <button class="tab active" data-tab="voice" onclick="switchTab('voice',   this)">🎙 Voice</button>
+        <button class="tab" data-tab="travel" onclick="switchTab('travel',  this)">✈️ Travel</button>
+        <button class="tab" data-tab="medical" onclick="switchTab('medical', this)">🏥 Medical</button>
+        <button class="tab" data-tab="legal" onclick="switchTab('legal',   this)">⚖️ Legal</button>
+        <!-- Profile tab removed from nav — opened via username chip in header -->
+      </nav>
+
+      <!-- VOICE PANEL -->
+      <div class="panel active" id="panel-voice">
+        <div id="speech-support-notice" class="support-notice" style="display:none">
+          ⚠️ Your browser may not support voice recognition. Use the text input below to type commands instead.
+        </div>
+        <div class="voice-center">
+          <div class="orb-wrap">
+            <div class="orb-ring2"></div>
+            <div class="orb-ring"></div>
+            <button class="orb" id="orb" onclick="toggleVoice()">
+              <span class="orb-icon" id="orb-icon">🎙</span>
+            </button>
+          </div>
+          <div class="wake-badge">
+            <div class="wake-dot" id="wake-dot"></div>
+            <span>Say <strong style="color:var(--text)">"Hey Triad"</strong> to activate</span>
+          </div>
+          <div class="voice-status" id="voice-status">Initializing wake word listener...</div>
+          <div class="transcript-box">
+            <div class="box-label">You said</div>
+            <div id="transcript-text" style="color:var(--text-muted)">Waiting for your voice...</div>
+          </div>
+          <div class="response-box">
+            <div class="box-label accent">Triad AI</div>
+            <div id="response-text" style="color:var(--text-muted)">Response will appear here...</div>
+          </div>
+          <div id="mic-denied-notice" class="mic-denied-notice" style="display:none">
+            🎤 Microphone access was denied or is unavailable. Use text input below.
+          </div>
+          <div class="voice-manual-row" id="voice-manual-row">
+            <input type="text" id="manual-command-input" placeholder="Type a command and press Send..."
+              onkeydown="if(event.key==='Enter')sendManualCommand()" />
+            <button class="voice-manual-send" onclick="sendManualCommand()">Send</button>
+          </div>
+          <div class="voice-hint">Say <strong>"Hey Triad"</strong> to activate, then speak your command — or type above.
+          </div>
+        </div>
+      </div>
+
+      <!-- TRAVEL PANEL -->
+      <div class="panel" id="panel-travel">
+        <div id="speech-support-notice-travel" class="support-notice" style="display:none">
+          ⚠️ Your browser may not support voice output. Travel plans will still display as text.
+        </div>
+        <div class="glass-card" style="position:relative;overflow:hidden;">
+          <div class="panel-number">02</div>
+          <div class="travel-grid">
+            <div class="field"><label>From</label><input type="text" id="t-origin" placeholder="e.g. Bengaluru" /></div>
+            <div class="field"><label>To</label><input type="text" id="t-dest" placeholder="e.g. Goa" /></div>
+            <div class="field"><label>Days</label><input type="number" id="t-days" placeholder="e.g. 3" min="1"
+                max="30" /></div>
+            <div class="field"><label>Travellers</label><input type="number" id="t-travelers" placeholder="e.g. 2"
+                min="1" /></div>
+            <div class="field" style="grid-column:span 2"><label>Budget (₹)</label><input type="number" id="t-budget"
+                placeholder="e.g. 15000" min="0" /></div>
+          </div>
+          <button class="btn-primary" id="plan-btn" onclick="planTrip()">✈ &nbsp; Generate Travel Plan</button>
+        </div>
+        <div id="travel-error" class="error" style="display:none"></div>
+        <div id="travel-loader" class="loader" style="display:none"><span></span><span></span><span></span></div>
+        <div id="travel-result" class="result-card" style="display:none">
+          <h3 id="travel-result-title"></h3>
+          <div id="travel-result-text" class="itinerary-body"></div>
+          <div class="result-card-actions">
+            <button class="speak-btn" onclick="speakTravelPlan()">🔊 &nbsp; Read Plan Aloud</button>
+            <button class="clear-btn" onclick="clearTravelResult()">✕ &nbsp; Clear</button>
+          </div>
+          <div class="booking-links-section">
+            <div class="booking-links-label">🔗 Book Your Trip</div>
+            <div class="booking-links-row">
+              <a id="link-flight" class="booking-chip flight" href="#" target="_blank" rel="noopener">
+                ✈️ Flights<span class="booking-chip-sub">MakeMyTrip</span>
+              </a>
+              <a id="link-train" class="booking-chip train" href="#" target="_blank" rel="noopener">
+                🚆 Trains<span class="booking-chip-sub">IRCTC</span>
+              </a>
+              <a id="link-bus" class="booking-chip bus" href="#" target="_blank" rel="noopener">
+                🚌 Bus<span class="booking-chip-sub">RedBus</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEDICAL PANEL -->
+      <div class="panel" id="panel-medical">
+        <div class="disclaimer-banner disclaimer-medical">
+          <div class="disclaimer-icon">⚕️</div>
+          <div class="disclaimer-body">
+            <div class="disclaimer-title">Medical Disclaimer — Please Read</div>
+            <div class="disclaimer-text">
+              This AI analyses medical reports based on publicly available datasets and general knowledge. It is
+              <strong>not a substitute for professional medical advice, diagnosis, or treatment.</strong> Medical
+              diagnosis by AI is <strong>not legally recognised in India</strong> under the Indian Medical Council Act.
+              Always consult a qualified and registered doctor before making any health decisions. Use this tool for
+              general awareness only.
+            </div>
+          </div>
+        </div>
+        <div class="doc-toggle">
+          <button class="doc-toggle-btn active" id="med-btn-pdf" onclick="medSwitchMode('pdf')">📄 Upload PDF</button>
+          <button class="doc-toggle-btn" id="med-btn-text" onclick="medSwitchMode('text')">✏️ Paste Text</button>
+        </div>
+        <div id="med-pdf-area">
+          <div class="doc-upload-area" id="med-drop-zone" onclick="document.getElementById('med-pdf-input').click()"
+            ondragover="medDragOver(event)" ondragleave="medDragLeave()" ondrop="medDrop(event)">
+            <div class="upload-icon">🩺</div>
+            <h3>Drop your medical report PDF here</h3>
+            <p>Supports blood reports, prescriptions, scan reports,<br />discharge summaries and any medical document.
+            </p>
+            <input type="file" id="med-pdf-input" accept=".pdf" onchange="medFileSelect(event)" />
+          </div>
+          <div class="file-chip" id="med-file-chip">
+            <span>📎</span><span id="med-file-name"></span>
+            <span style="cursor:pointer;color:var(--text-muted)" onclick="medClearFile()">✕</span>
+          </div>
+          <div class="file-size-warn" id="med-file-size-warn">⚠️ This file is large (&gt;5 MB) — upload may be slow or
+            fail.</div>
+        </div>
+        <div id="med-text-area" style="display:none">
+          <textarea class="doc-textarea" id="med-text-input"
+            placeholder="Paste your medical report values here...&#10;&#10;Minimum 30 characters required."
+            oninput="updateMedCharCounter()"></textarea>
+          <div class="char-counter" id="med-char-counter">0 / 30 min</div>
+        </div>
+        <button class="btn-primary" id="med-analyze-btn" onclick="analyzeMedical()" style="margin-top:18px;">🔍 &nbsp;
+          Analyze Medical Report</button>
+        <div id="med-error" class="error" style="display:none"></div>
+        <div id="med-loader" class="loader" style="display:none"><span></span><span></span><span></span></div>
+        <div id="med-results" style="display:none;margin-top:28px;">
+          <div class="results-header-row">
+            <div class="doc-badge" id="med-doc-badge">🩺 Report analyzed</div>
+            <button class="clear-btn"
+              onclick="medHideResults();medClearFile();document.getElementById('med-text-input').value='';updateMedCharCounter();">✕
+              Reset</button>
+          </div>
+          <div class="doc-result-tabs">
+            <button class="doc-result-tab active" onclick="medShowTab('summary',this)">📋 Summary</button>
+            <button class="doc-result-tab" onclick="medShowTab('values', this)">🔬 Value Analysis</button>
+            <button class="doc-result-tab" onclick="medShowTab('advice', this)">💡 Health Advice</button>
+          </div>
+          <div class="doc-result-panel active" id="med-panel-summary">
+            <div class="doc-result-header">
+              <h4>📋 Plain English Summary</h4><button class="copy-btn"
+                onclick="medCopy('med-summary-text',this)">Copy</button>
+            </div>
+            <div class="doc-result-box" id="med-summary-text"></div>
+            <button class="speak-btn" id="med-speak-summary"
+              onclick="medSpeak('med-summary-text','med-speak-summary')">🔊 Read Aloud</button>
+          </div>
+          <div class="doc-result-panel" id="med-panel-values">
+            <div class="doc-result-header">
+              <h4>🔬 Detailed Value Analysis</h4><button class="copy-btn"
+                onclick="medCopy('med-values-text',this)">Copy</button>
+            </div>
+            <div class="doc-result-box" id="med-values-text"></div>
+            <button class="speak-btn" id="med-speak-values" onclick="medSpeak('med-values-text','med-speak-values')">🔊
+              Read Aloud</button>
+          </div>
+          <div class="doc-result-panel" id="med-panel-advice">
+            <div class="doc-result-header">
+              <h4>💡 Health Advice & Next Steps</h4><button class="copy-btn"
+                onclick="medCopy('med-advice-text',this)">Copy</button>
+            </div>
+            <div class="doc-result-box" id="med-advice-text"></div>
+            <button class="speak-btn" id="med-speak-advice" onclick="medSpeak('med-advice-text','med-speak-advice')">🔊
+              Read Aloud</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEGAL PANEL -->
+      <div class="panel" id="panel-legal">
+        <div class="disclaimer-banner disclaimer-legal">
+          <div class="disclaimer-icon">⚖️</div>
+          <div class="disclaimer-body">
+            <div class="disclaimer-title">Legal Disclaimer — Please Read</div>
+            <div class="disclaimer-text">
+              This AI interprets legal documents based on AI language models and publicly available information. It is
+              <strong>not a licensed legal opinion</strong> and does not constitute legal advice under the Advocates
+              Act, 1961. Do not rely solely on this analysis for any legal decision, contract signing, or dispute
+              resolution. Always consult a qualified and enrolled advocate for proper legal guidance.
+            </div>
+          </div>
+        </div>
+        <div class="doc-toggle">
+          <button class="doc-toggle-btn active" id="legal-btn-pdf" onclick="legalSwitchMode('pdf')">📄 Upload
+            PDF</button>
+          <button class="doc-toggle-btn" id="legal-btn-text" onclick="legalSwitchMode('text')">✏️ Paste Text</button>
+        </div>
+        <div id="legal-pdf-area">
+          <div class="doc-upload-area" id="legal-drop-zone" onclick="document.getElementById('legal-pdf-input').click()"
+            ondragover="legalDragOver(event)" ondragleave="legalDragLeave()" ondrop="legalDrop(event)">
+            <div class="upload-icon">📑</div>
+            <h3>Drop your legal PDF here</h3>
+            <p>Supports contracts, rental deeds, employment agreements,<br />NDAs, terms & conditions, loan documents
+              and more.</p>
+            <input type="file" id="legal-pdf-input" accept=".pdf" onchange="legalFileSelect(event)" />
+          </div>
+          <div class="file-chip" id="legal-file-chip">
+            <span>📎</span><span id="legal-file-name"></span>
+            <span style="cursor:pointer;color:var(--text-muted)" onclick="legalClearFile()">✕</span>
+          </div>
+          <div class="file-size-warn" id="legal-file-size-warn">⚠️ This file is large (&gt;5 MB) — upload may be slow or
+            fail.</div>
+        </div>
+        <div id="legal-text-area" style="display:none">
+          <textarea class="doc-textarea" id="legal-text-input"
+            placeholder="Paste your legal document text here...&#10;&#10;Minimum 50 characters required."
+            oninput="updateLegalCharCounter()"></textarea>
+          <div class="char-counter" id="legal-char-counter">0 / 50 min</div>
+        </div>
+        <button class="btn-primary" id="legal-analyze-btn" onclick="analyzeLegal()" style="margin-top:18px;">⚖️ &nbsp;
+          Analyze Legal Document</button>
+        <div id="legal-error" class="error" style="display:none"></div>
+        <div id="legal-loader" class="loader" style="display:none"><span></span><span></span><span></span></div>
+        <div id="legal-results" style="display:none;margin-top:28px;">
+          <div class="results-header-row">
+            <div class="doc-badge" id="legal-doc-badge">📄 Document analyzed</div>
+            <button class="clear-btn"
+              onclick="legalHideResults();legalClearFile();document.getElementById('legal-text-input').value='';updateLegalCharCounter();">✕
+              Reset</button>
+          </div>
+          <div class="doc-result-tabs">
+            <button class="doc-result-tab active" onclick="legalShowTab('plain',  this)">📖 Plain English</button>
+            <button class="doc-result-tab" onclick="legalShowTab('clauses',this)">📋 Clause Breakdown</button>
+            <button class="doc-result-tab" onclick="legalShowTab('keys',   this)">🔑 Key Points</button>
+          </div>
+          <div class="doc-result-panel active" id="legal-panel-plain">
+            <div class="doc-result-header">
+              <h4>📖 Plain English Explanation</h4><button class="copy-btn"
+                onclick="legalCopy('legal-plain-text',this)">Copy</button>
+            </div>
+            <div class="doc-result-box" id="legal-plain-text"></div>
+            <button class="speak-btn" id="legal-speak-plain"
+              onclick="legalSpeak('legal-plain-text','legal-speak-plain')">🔊 Read Aloud</button>
+          </div>
+          <div class="doc-result-panel" id="legal-panel-clauses">
+            <div class="doc-result-header">
+              <h4>📋 Clause by Clause Breakdown</h4><button class="copy-btn"
+                onclick="legalCopy('legal-clauses-text',this)">Copy</button>
+            </div>
+            <div class="doc-result-box" id="legal-clauses-text"></div>
+            <button class="speak-btn" id="legal-speak-clauses"
+              onclick="legalSpeak('legal-clauses-text','legal-speak-clauses')">🔊 Read Aloud</button>
+          </div>
+          <div class="doc-result-panel" id="legal-panel-keys">
+            <div class="doc-result-header">
+              <h4>🔑 Key Points & Risks</h4><button class="copy-btn"
+                onclick="legalCopy('legal-keys-text',this)">Copy</button>
+            </div>
+            <div class="doc-result-box" id="legal-keys-text"></div>
+            <button class="speak-btn" id="legal-speak-keys"
+              onclick="legalSpeak('legal-keys-text','legal-speak-keys')">🔊 Read Aloud</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE PANEL -->
+      <div class="panel" id="panel-profile">
+        <div class="profile-header">
+          <div class="profile-avatar-wrap" onclick="document.getElementById('avatar-file-input').click()"
+            title="Click to change photo">
+            <div class="profile-avatar-large" id="profile-avatar-large">?</div>
+            <div class="avatar-camera-overlay">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.92c.04-.3.07-.61.07-.93s-.03-.63-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.31-.09.63-.09.94s.04.62.09.93l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z" />
+              </svg>
+              <span>Change</span>
+            </div>
+            <input type="file" id="avatar-file-input" accept="image/*" onchange="handleAvatarUpload(event)" />
+          </div>
+          <div class="profile-info">
+            <h2 id="profile-display-name">Loading...</h2>
+            <p id="profile-display-email"></p>
+            <div class="profile-joined" id="profile-joined"></div>
+          </div>
+        </div>
+
+        <!-- Edit Info -->
+        <div class="profile-section">
+          <div class="profile-section-title">✏️ Edit Profile</div>
+          <div class="profile-field-grid">
+            <div class="profile-field">
+              <label>Full Name</label>
+              <input type="text" id="pf-fullname" placeholder="Your full name" />
+            </div>
+            <div class="profile-field">
+              <label>Username</label>
+              <input type="text" id="pf-username" placeholder="Username" />
+            </div>
+            <div class="profile-field" style="grid-column:span 2">
+              <label>Email Address</label>
+              <input type="email" id="pf-email" placeholder="your@email.com" />
+            </div>
+            <!-- Avatar is now uploaded via click on the photo circle above -->
+          </div>
+          <div class="profile-save-row">
+            <button class="btn-profile-save" id="btn-save-profile" onclick="saveProfile()">💾 Save Changes</button>
+            <span class="profile-msg" id="profile-info-msg"></span>
+          </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="profile-section">
+          <div class="profile-section-title">🔒 Change Password</div>
+          <div class="profile-field-grid">
+            <div class="profile-field">
+              <label>Current Password</label>
+              <input type="password" id="pf-cur-pass" placeholder="Current password" />
+            </div>
+            <div class="profile-field">
+              <label>New Password <span style="opacity:0.4;font-weight:400">(min 6)</span></label>
+              <input type="password" id="pf-new-pass" placeholder="New password"
+                onkeydown="if(event.key==='Enter')savePassword()" />
+            </div>
+          </div>
+          <div class="profile-save-row">
+            <button class="btn-profile-save" id="btn-save-password" onclick="savePassword()">🔑 Update Password</button>
+            <span class="profile-msg" id="profile-pass-msg"></span>
+          </div>
+        </div>
+
+        <!-- Logout -->
+        <div class="profile-section">
+          <div class="profile-section-title">🚪 Session</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+            Signing out will end your current session. Your data remains saved.
+          </p>
+          <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

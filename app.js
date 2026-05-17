@@ -1,5 +1,5 @@
 // ── CONFIG ────────────────────────────────────────────────────────────────
-const DEFAULT_BACKEND = "http://localhost:8000";
+const DEFAULT_BACKEND = "https://triad-ai-helper.onrender.com";
 const PDF_SIZE_WARN_BYTES = 5 * 1024 * 1024;
 
 function getBackendUrl() { return localStorage.getItem('triad_backend_url') || DEFAULT_BACKEND; }
